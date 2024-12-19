@@ -1,0 +1,16 @@
+.sidebar {
+    position: fixed;
+    width: 700px;
+    height: 100%;
+    right: -700px; 
+    top: 0;
+    z-index: 1000;
+    background-color: rgb(78, 0, 255);
+    padding: 20px;
+    transition: transform 0.3s ease; /* Плавное выдвижение */
+  
+    &.open {
+      transform: translateX(-700px); /* Выдвигаем панель на экран */
+    }
+  }
+  

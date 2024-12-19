@@ -1,12 +1,61 @@
-.block-rate{
+.block-rate {
     display: block;
     margin: 0 auto;
     padding-left: 3%;
+
+    display: flex;
+    align-items: center; 
+    line-height: 100px;
+    text-align: center;
+
+    span {
+        width: 20px;
+    }
+    svg {
+        fill: red;
+        font-size: 40px;
+        height: 20px;
+    }
+}
+.arrow-up {
+    color: green;
+    margin-left: 10px;
+    font-size: 1.5rem;
 }
 
-.block-rate-block{
+.arrow-down {
+    color: red;
+    margin-left: 10px;
+    font-size: 1.5rem;
+}
+.block-rate-block {
+    background-color: rgb(245, 245, 245);
+
+    margin: 20px;
+    padding: 20px;
     display: flex;
     justify-content: space-between;
+    align-items: center;
     width: 600px;
+
+    button{
+        background-color: transparent;
+        display: flex;
+        align-items: center;
+        border: none;
+        height: 50px;
+        
+        
+    }
     
+    svg{
+        fill: red;
+        transform: scale(2);
+        cursor: pointer;
+    }
+    svg:hover{
+        fill: rgb(182, 1, 1);
+        transform: scale(2);
+    }
+
 }

@@ -1,20 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/block/block-rate.scss';
+import { FaHeartBroken } from "react-icons/fa";
 
 export default function Favorite() {
-  const [dataFavorite, setFavorite] = useState([]);
+  const [dataFavorite, setFavorite] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzM0NTA3NDU3LCJpYXQiOjE3MzQ1MDQ0NTcsImp0aSI6ImMxZTBkMDFhZTQ4MzQyNDc5NDgzMmFhZDFiYTEzNzFiIiwidXNlcl9pZCI6MX0.g2OYRsQVJLiEGeA3LvjhHfs3FemgGRG3lsViM_az0XQ";
+
+  const fetchFavoriteData = () => {
+    const token = localStorage.getItem("accessToken");
+
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
- 
     axios.get("http://localhost:8000/getfavoritebysymbols/")
       .then((res) => {
-        setFavorite(res.data);
+        setFavorite(res.data); 
       })
       .catch((error) => {
         console.error("Ошибка при получении избранных валют:", error);
@@ -23,16 +25,25 @@ export default function Favorite() {
       .finally(() => {
         setLoading(false);
       });
+  };
+
+
+  useEffect(() => {
+    fetchFavoriteData();
+    
+    
+
   }, []);
+  
+
 
   const handleRemoveFavorite = (symbol) => {
+    const token = localStorage.getItem("accessToken");
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
     axios.delete(`http://localhost:8000/api/removeFavorite/${symbol}/`)
       .then(() => {
-       
-        setFavorite(prevFavorites => ({
-          ...prevFavorites,
-          rates: { ...prevFavorites.rates, [symbol]: undefined }
-        }));
+        fetchFavoriteData(); 
       })
       .catch((error) => {
         console.error("Ошибка при удалении валюты из избранного:", error);
@@ -40,9 +51,11 @@ export default function Favorite() {
       });
   };
 
+
   if (loading) {
     return <p>Загрузка...</p>;
   }
+
 
   if (error) {
     return <p>{error}</p>;
@@ -50,15 +63,18 @@ export default function Favorite() {
 
   return (
     <>
-      {dataFavorite && dataFavorite.rates ? (
+      {dataFavorite && dataFavorite.rates && Object.keys(dataFavorite.rates).length > 0 ? (
+
         Object.entries(dataFavorite.rates).map(([symbol, rate]) => (
+
           <div className='block-rate' key={symbol}> 
             <div className='block-rate-block'>
               <h2>{symbol} за 1 EUR</h2>
               <p>Курс: {rate}</p>
-              <button onClick={() => handleRemoveFavorite(symbol)}>Удалить из избранного</button>
+              <span onClick={() => handleRemoveFavorite(symbol)}><FaHeartBroken /></span>
             </div>
           </div>
+
         ))
       ) : (
         <p>Нет избранных валют</p>

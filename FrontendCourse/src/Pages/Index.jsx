@@ -1,63 +1,58 @@
-import React, { useEffect } from 'react'
-import axios from "axios";
-import '../styles/block/block-rate.scss'
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import '../styles/block/block-rate.scss';
+import { FaHeart } from 'react-icons/fa';
 
-import { useState } from 'react'
 export default function Index() {
-    const [data, setData] = useState([]);
+    const [currentData, setCurrentData] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);  
+
+    const token = localStorage.getItem("accessToken");
 
     useEffect(() => {
-    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzM0NTA1MjI5LCJpYXQiOjE3MzQ1MDIyMjksImp0aSI6IjRmN2I1MzIxZTg5ODQzOTA4NDcwMDc4YWVhZTRlODI4IiwidXNlcl9pZCI6MX0.UJacHyIOG9Kft-axQ6FM3nYEldnmmxaUOc6pGj_Sa3E"
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+        setIsLoading(true);
         axios.get("http://localhost:8000/currency-rates/")
-
             .then((res) => {
+                setCurrentData(res.data);
+                setIsLoading(false);  
+            })
 
-                setData(res.data);
-                console.log("данные", data);
+            .catch((error) => {
+                console.error("Ошибка при загрузке данных:", error);
+                setIsLoading(false);  
             });
+    }, [token]);
 
-    }, []);
-
-
-    const handleAddFavoryte = (name) => {
-
-        console.log(name);
-
-        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzM0NTA1MjI5LCJpYXQiOjE3MzQ1MDIyMjksImp0aSI6IjRmN2I1MzIxZTg5ODQzOTA4NDcwMDc4YWVhZTRlODI4IiwidXNlcl9pZCI6MX0.UJacHyIOG9Kft-axQ6FM3nYEldnmmxaUOc6pGj_Sa3E"
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-
-        axios.post("http://localhost:8000/course-add/", {
-            "currency": `${name}`
-        })
-
+    const handleAddFavorite = (name) => {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        axios.
+        post("http://localhost:8000/course-add/", { "currency": `${name}` })
+            
         .then((res) => {
-            console.log("добавлено");
-        })
-
-
-
-
+                console.log("добавлено", res);
+            });
     };
 
     return (
         <>
-
             <h1>Валюты</h1>
-            {data && data.map((item) => (
-                    <div className='block-rate'>
-
-                        <div className='block-rate-block'>
-
-                            <h1>{item.code}</h1>
-                            <h2>{item.course} за 1 EUR'о</h2>
-                            <button onClick={() => handleAddFavoryte(item.name)}>в избранное</button>
-
+            {isLoading ? ( 
+                <p>Загрузка...</p>
+            ) : (
+                currentData && currentData.map((item) => {
+                    return (
+                        <div className='block-rate' key={item.id}>
+                            <div className='block-rate-block'>
+                                <h1>{item.code}</h1>
+                                <h2>{item.course} за 1 EUR</h2>
+                                <button onClick={() => handleAddFavorite(item.name)}><FaHeart /></button>
+                            </div>
                         </div>
-                    </div>
-                ))}
-
-
+                    );
+                })
+            )}
         </>
-    )
+    );
 }

@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from django.shortcuts import render, HttpResponse
 import requests
 from rest_framework import status
@@ -11,7 +13,7 @@ from rest_framework.permissions import BasePermission, IsAuthenticated, SAFE_MET
 from .serializers import CurrencySerizliazer,CurrencyFavoriteSerializer
 from .models import Currency,CurrencyFavorite
 
-
+tokenFixer = "a2d6c43c59df0832561c96f7cde8f29c"
 
 # Create your views here.
 def index(request):
@@ -33,7 +35,7 @@ def getFavoriteBySymbols(req):
     symbols = ','.join([favorite.currency.code for favorite in favorites])
 
 
-    url = f"http://data.fixer.io/api/latest?access_key=503e97796596f0a9ca139e1d449035bf&base=EUR&symbols={symbols}"
+    url = f"http://data.fixer.io/api/latest?access_key={tokenFixer}&base=EUR&symbols={symbols}"
 
 
     response = requests.get(url)
@@ -101,11 +103,56 @@ def deleteFromFavorite(request, currency_code):
 
 class UpdateCurrencyRatesView(APIView):
     def get(self, request):
-
         cur = Currency.objects.values_list('code', flat=True)
         symbols = ','.join(cur)
 
-        url = f"http://data.fixer.io/api/latest?access_key=503e97796596f0a9ca139e1d449035bf&base=EUR&symbols={symbols}"
+        # Получение текущих курсов
+        url_current = f"http://data.fixer.io/api/latest?access_key={tokenFixer}&base=EUR&symbols={symbols}"
+        response_current = requests.get(url_current)
+
+        # Получение курсов за предыдущий день
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        url_previous = f"http://data.fixer.io/api/{yesterday}?access_key={tokenFixer}&base=EUR&symbols={symbols}"
+        response_previous = requests.get(url_previous)
+
+        if response_current.status_code == 200 and response_previous.status_code == 200:
+            data_current = response_current.json()
+            data_previous = response_previous.json()
+
+            if data_current['success'] and data_previous['success']:
+                rates_current = data_current['rates']
+                rates_previous = data_previous['rates']
+                updated_currencies = []
+
+                for currency in Currency.objects.all():
+                    if currency.name in rates_current and currency.name in rates_previous:
+                        currency.course = rates_current[currency.name]
+                        currency.save()
+                        updated_currencies.append({
+                            "code": currency.name,
+                            "course": rates_current[currency.name],
+                            "previous_course": rates_previous[currency.name]
+                        })
+
+                return Response(updated_currencies, status=status.HTTP_200_OK)
+            else:
+                return Response({"ошибка": data_current.get('error', 'Ошибка данных')},
+                                status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"ошибка": "Ошибка соединения с Fixer.io"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PreviousDayCurrencyRatesView(APIView):
+    def get(self, request):
+        tokenFixer = "ВАШ_API_КЛЮЧ"  # Ваш API-ключ для Fixer.io или другого сервиса
+        cur = Currency.objects.values_list('code', flat=True)
+        symbols = ','.join(cur)
+
+        # Получение даты вчерашнего дня
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+
+        # Запрос курсов за предыдущий день через API
+        url = f"http://data.fixer.io/api/{yesterday}?access_key={tokenFixer}&base=EUR&symbols={symbols}"
 
         response = requests.get(url)
 
@@ -114,14 +161,18 @@ class UpdateCurrencyRatesView(APIView):
 
             if data['success']:
                 rates = data['rates']
-                updated_currencies = []
+                previous_currencies = []
 
+                # Сохраняем курсы валют за предыдущий день в список
                 for currency in Currency.objects.all():
                     if currency.name in rates:
-                        currency.course = rates[currency.name]
-                        currency.save()
-                        updated_currencies.append(CurrencySerizliazer(currency).data)
+                        previous_currencies.append({
+                            "code": currency.name,
+                            "course": rates[currency.name]
+                        })
 
-                return Response(updated_currencies, status=status.HTTP_200_OK)
+                return Response(previous_currencies, status=status.HTTP_200_OK)
             else:
                 return Response({"ошибка": data['error']}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"ошибка": "Ошибка соединения с Fixer.io"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
